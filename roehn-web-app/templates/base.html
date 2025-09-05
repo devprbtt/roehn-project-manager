@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roehn Project Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+	<link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+	<style>
+	@media print {
+		/* Elementos que devem ser ocultos na impressão */
+		.navbar, .btn, .alert, .modal, .input-group, 
+		.form-control, .form-select, .no-print,
+		.card-header.bg-primary, .card-header.bg-dark {
+			display: none !important;
+		}
+		
+		/* Ajustes de layout para impressão */
+		body {
+			background-color: white !important;
+			font-size: 12px;
+			line-height: 1.2;
+		}
+		
+		.container {
+			width: 100% !important;
+			max-width: 100% !important;
+			padding: 0 !important;
+			margin: 0 !important;
+		}
+		
+		.card {
+			border: 1px solid #000 !important;
+			box-shadow: none !important;
+			margin-bottom: 10px !important;
+			page-break-inside: avoid;
+		}
+		
+		.card-header {
+			background-color: #f0f0f0 !important;
+			color: #000 !important;
+			border-bottom: 2px solid #000 !important;
+			padding: 5px !important;
+		}
+		
+		.card-header h2, .card-header h3, .card-header h4 {
+			color: #000 !important;
+			margin: 0 !important;
+			font-size: 14px !important;
+		}
+		
+		.card-body {
+			padding: 8px !important;
+		}
+
+		/* Tabelas para impressão */
+		table {
+			width: 100% !important;
+			font-size: 10px !important;
+		}
+		
+		th, td {
+			padding: 4px !important;
+			border: 1px solid #ccc !important;
+		}
+	}
+	</style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='images/favicon-roehn.png') }}" alt="Logo Roehn" class="me-2" style="height: 30px;background-color: white">
+                Project Manager
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Início
+                        </a>
+                    </li>
+                    {% if session.projeto_atual_id %}
+					{% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('areas') }}">
+                            <i class="fas fa-layer-group me-1"></i>Áreas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('ambientes') }}">
+                            <i class="fas fa-door-open me-1"></i>Ambientes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('circuitos') }}">
+                            <i class="fas fa-bezier-curve me-1"></i>Circuitos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('modulos') }}">
+                            <i class="fas fa-server me-1"></i>Módulos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('vinculacao') }}">
+                            <i class="fas fa-link me-1"></i>Vinculação
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('projeto') }}">
+                            <i class="fas fa-project-diagram me-1"></i>Projeto
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endif %}					
+                    {% if current_user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('manage_users') }}">
+							<i class="fas fa-user me-1"></i>Usuários
+						</a>
+                    </li>					
+					{% endif %}
+
+                </ul>
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>{{ current_user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-item-text">Função: {{ current_user.role }}</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-1"></i>Sair</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">Entrar</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

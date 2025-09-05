@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if not session.projeto_atual_id %}
+<div class="alert alert-warning">
+    <p>Nenhum projeto selecionado. <a href="{{ url_for('index') }}">Voltar para a página inicial</a> para selecionar ou criar um projeto.</p>
+</div>
+{% else %}
+<h2>Gerenciar Áreas do Projeto: {{ session.projeto_atual_nome }}</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Adicionar Nova Área</h3>
+            </div>
+            <div class="card-body">
+                <form id="formArea">
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome da Área</label>
+                        <input type="text" class="form-control" id="nome" required>
+                        <div class="invalid-feedback" id="nome-feedback"></div>
+                    </div>
+					<div class="mb-3 no-print">
+						<button type="submit" class="btn btn-primary w-100">
+							<i class="fas fa-plus-circle me-2"></i>Adicionar Área
+						</button>
+					</div>
+
+					
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Áreas Cadastradas</h3>
+            </div>
+            <div class="card-body">
+                {% if areas %}
+                    <ul class="list-group" id="listaAreas">
+                        {% for area in areas %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ area.nome }}
+                                <button class="btn btn-sm btn-outline-danger" onclick="excluirArea({{ area.id }})">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">Nenhuma área cadastrada.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const botao = document.getElementById('botao-mudar-pagina');
+
+    botao.addEventListener('click', (event) => {
+        // Impede a mudança de página imediata do HTML
+        event.preventDefault(); 
+        const destino = botao.href;
+
+        // Adiciona a classe 'fade-out' ao body para iniciar a transição
+        document.body.classList.add('fade-out');
+
+        // Espera o tempo da transição (0.5 segundos) e então navega para a nova página
+        setTimeout(() => {
+            window.location.href = destino;
+        }, 500); // 500 milissegundos = 0.5 segundos
+    });
+});
+document.getElementById('formArea').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('nome', document.getElementById('nome').value);
+    
+    fetch('/areas', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            document.getElementById('nome').classList.add('is-invalid');
+            document.getElementById('nome-feedback').textContent = data.message;
+        }
+    });
+});
+
+function excluirArea(id) {
+    if (confirm('Tem certeza que deseja excluir esta área? Esta ação não pode ser desfeita.')) {
+        fetch(`/areas/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card border-0 rounded-4 shadow-lg">
+            <div class="card-header bg-primary text-white rounded-top-4">
+                <h2 class="my-1"><i class="fas fa-file-export me-2"></i>Gerar Projeto Roehn</h2>
+                <p class="mb-0">Gere um projeto Roehn Wizard diretamente do projeto atual: <strong>{{ projeto.nome if projeto else '' }}</strong></p>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" enctype="multipart/form-data" id="roehnForm">
+                    <!-- Campos ocultos para valores fixos -->
+                    <input type="hidden" id="m4_hsnet" name="m4_hsnet" value="245">
+                    <input type="hidden" id="m4_devid" name="m4_devid" value="1">
+                    <input type="hidden" id="software_version" name="software_version" value="1.0.8.67">
+                    
+                    <!-- Seção: Informações do Projeto -->
+                    <h4 class="border-bottom pb-2 text-primary">Informações do Projeto</h4>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="project_name" class="form-label">Nome do Projeto</label>
+                            <input type="text" class="form-control rounded-3" id="project_name" name="project_name" value="{{ projeto.nome if projeto else '' }}" required>
+                            <div class="form-text">O nome do projeto Roehn será baseado no projeto atual</div>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Informações do Cliente -->
+                    <h4 class="border-bottom pb-2 mt-4 text-primary">Informações do Cliente</h4>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="client_name" class="form-label">Nome do Cliente</label>
+                            <input type="text" class="form-control rounded-3" id="client_name" name="client_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="client_email" class="form-label">Email do Cliente</label>
+                            <input type="email" class="form-control rounded-3" id="client_email" name="client_email">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="client_phone" class="form-label">Telefone do Cliente</label>
+                            <input type="tel" class="form-control rounded-3" id="client_phone" name="client_phone" placeholder="(00) 00000-0000" oninput="formatPhoneNumber(this)">
+                            <div class="form-text">Digite apenas números (DDD + número)</div>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Configurações Técnicas -->
+                    <h4 class="border-bottom pb-2 mt-4 text-primary">Configurações Técnicas</h4>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="tech_area" class="form-label">Área Técnica</label>
+                            <input type="text" class="form-control rounded-3" id="tech_area" name="tech_area" value="Área Técnica">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tech_room" class="form-label">Sala Técnica</label>
+                            <input type="text" class="form-control rounded-3" id="tech_room" name="tech_room" value="Sala Técnica">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="board_name" class="form-label">Nome do Quadro</label>
+                            <input type="text" class="form-control rounded-3" id="board_name" name="board_name" value="Quadro Elétrico">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="m4_ip" class="form-label">IP do M4</label>
+                            <input type="text" class="form-control rounded-3" id="m4_ip" name="m4_ip" value="192.168.5.30" pattern="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" title="Digite um endereço IP válido (ex: 192.168.0.1)" oninput="formatIPAddress(this)" required>
+                            <div class="form-text">Formato: XXX.XXX.XXX.XXX (0-255 em cada octeto)</div>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Informações do Programador -->
+                    <h4 class="border-bottom pb-2 mt-4 text-primary">Informações do Programador</h4>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="programmer_name" class="form-label">Nome do Programador</label>
+                            <input type="text" class="form-control rounded-3" id="programmer_name" name="programmer_name" value="{{ current_user.username }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="programmer_email" class="form-label">Email do Programador</label>
+                            <input type="email" class="form-control rounded-3" id="programmer_email" name="programmer_email" value="{{ current_user.email }}">
+                        </div>
+                    </div>
+
+                    <!-- Seção: Localização -->
+                    <h4 class="border-bottom pb-2 mt-4 text-primary">Localização</h4>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="timezone_id" class="form-label">Fuso Horário</label>
+                            <select class="form-select rounded-3" id="timezone_id" name="timezone_id">
+                                <option value="America/Bahia">America/Bahia</option>
+                                <option value="E. South America Standard Time">E. South America Standard Time</option>
+                                <!-- Adicione mais opções conforme necessário -->
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="lat" class="form-label">Latitude</label>
+                            <input type="number" step="any" class="form-control rounded-3" id="lat" name="lat" value="-12.9777">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="lon" class="form-label">Longitude</label>
+                            <input type="number" step="any" class="form-control rounded-3" id="lon" name="lon" value="-38.5016">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2 rounded-pill">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-success rounded-pill">
+                            <i class="fas fa-file-export me-1"></i> Gerar Projeto Roehn
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Informações do Projeto Atual -->
+        <div class="card border-0 rounded-4 shadow-sm mt-4">
+            <div class="card-header bg-light border-0 rounded-top-4">
+                <h5 class="my-1"><i class="fas fa-info-circle me-2"></i>Informações do Projeto Atual</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Áreas:</strong> {{ projeto.areas|length }}</p>
+                        <p><strong>Ambientes:</strong> {{ projeto.areas|map(attribute='ambientes')|map('length')|sum }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Circuitos:</strong> {{ projeto.areas|map(attribute='ambientes')|map('length')|sum }}</p>
+                        <p><strong>Módulos:</strong> {{ projeto.modulos|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Função para formatar número de telefone
+function formatPhoneNumber(input) {
+    // Remove tudo que não é dígito
+    let numbers = input.value.replace(/\D/g, '');
+    
+    // Limita a 11 dígitos (DDD + 9 dígitos)
+    numbers = numbers.substring(0, 11);
+    
+    // Aplica a formatação
+    let formatted = '';
+    if (numbers.length > 0) {
+        formatted = '(' + numbers.substring(0, 2);
+        if (numbers.length > 2) {
+            formatted += ') ' + numbers.substring(2, 7);
+            if (numbers.length > 7) {
+                formatted += '-' + numbers.substring(7, 11);
+            }
+        }
+    }
+    
+    input.value = formatted;
+}
+
+// Função para formatar endereço IP
+function formatIPAddress(input) {
+    // Remove tudo que não é dígito ou ponto
+    let value = input.value.replace(/[^0-9.]/g, '');
+    
+    // Divide em octetos
+    let octets = value.split('.');
+    
+    // Limita cada octeto a 3 dígitos e 255
+    for (let i = 0; i < octets.length; i++) {
+        if (octets[i].length > 3) {
+            octets[i] = octets[i].substring(0, 3);
+        }
+        if (parseInt(octets[i]) > 255) {
+            octets[i] = '255';
+        }
+    }
+    
+    // Junta os octetos com pontos
+    value = octets.join('.');
+    
+    // Limita a 15 caracteres (máximo para um IP)
+    if (value.length > 15) {
+        value = value.substring(0, 15);
+    }
+    
+    input.value = value;
+}
+
+// Validação do formulário
+document.getElementById('roehnForm').addEventListener('submit', function(e) {
+    const phoneInput = document.getElementById('client_phone');
+    const ipInput = document.getElementById('m4_ip');
+    
+    // Validação do telefone
+    const phoneNumbers = phoneInput.value.replace(/\D/g, '');
+    if (phoneNumbers.length < 10) {
+        e.preventDefault();
+        alert('Por favor, insira um número de telefone válido com DDD + número (mínimo 10 dígitos).');
+        phoneInput.focus();
+        return false;
+    }
+    
+    // Cria um campo oculto com o telefone apenas números para envio
+    const hiddenPhoneInput = document.createElement('input');
+    hiddenPhoneInput.type = 'hidden';
+    hiddenPhoneInput.name = 'client_phone_clean';
+    hiddenPhoneInput.value = phoneNumbers;
+    this.appendChild(hiddenPhoneInput);
+    
+    // Validação do IP usando a expressão regular
+    const ipPattern = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (!ipPattern.test(ipInput.value)) {
+        e.preventDefault();
+        alert('Por favor, insira um endereço IP válido no formato XXX.XXX.XXX.XXX, onde cada XXX é um número entre 0 e 255.');
+        ipInput.focus();
+        return false;
+    }
+});
+</script>
+{% endblock %}

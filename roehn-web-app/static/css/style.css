@@ -1,0 +1,151 @@
+body {
+    background-color: #e9ecef;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: bold;
+}
+
+.card-header h3 {
+    color: #495057;
+}
+
+.btn {
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    transition: transform 0.2s;
+}
+
+.btn-info {
+    transition: transform 0.2s;
+}
+
+.btn-danger{
+    transition: transform 0.2s;
+}
+
+.btn-success{
+    transition: transform 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+.btn-info:hover {
+    transform: translateY(-2px);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.list-group-item {
+    border: none;
+    background-color: #f8f9fa;
+    border-left: 4px solid transparent;
+    transition: background-color 0.2s, border-left-color 0.2s;
+}
+
+.list-group-item:hover {
+    background-color: #f1f3f5;
+    border-left-color: #007bff;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}
+
+.table thead th {
+    background-color: #f1f3f5;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: bold;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.01);
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
+}
+
+/* Estilos gerais para inputs e selects */
+.form-control, .form-select {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
+    transition: all 0.2s ease-in-out; /* Adiciona transição para suavizar mudanças */
+}
+
+/* Estilo específico para o input de arquivo */
+input[type="file"].form-control {
+    background-color: #f1f3f5; /* Um cinza bem claro, mais suave que o branco puro */
+    border-color: #ced4da; /* Uma borda um pouco mais escura */
+    color: #495057; /* Cor do texto mais escura para melhor contraste */
+}
+
+input[type="file"].form-control:hover {
+    background-color: #e9ecef; /* Um pouco mais escuro ao passar o mouse */
+    border-color: #adb5bd;
+}
+
+input[type="file"].form-control:focus {
+    background-color: #ffffff; /* Volta ao branco no foco, para manter a usabilidade */
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+}
+
+.badge {
+    padding: 0.5em 0.8em;
+    font-weight: bold;
+    border-radius: 50rem;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}

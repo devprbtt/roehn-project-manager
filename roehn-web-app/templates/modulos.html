@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if not session.projeto_atual_id %}
+<div class="alert alert-warning">
+    <p>Nenhum projeto selecionado. <a href="{{ url_for('index') }}">Voltar para a página inicial</a> para selecionar ou criar um projeto.</p>
+</div>
+{% else %}
+<h2>Gerenciar Módulos do Projeto: {{ session.projeto_atual_nome }}</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Adicionar Novo Módulo</h3>
+            </div>
+            <div class="card-body">
+                <form id="formModulo">
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label">Tipo</label>
+                        <select class="form-select" id="tipo" required onchange="preencherNomeModulo()">
+                            <option value="">Selecione o tipo</option>
+                            <option value="RL12">ADP-RL12</option>
+                            <option value="RL4">AQL-GV-RL4</option>
+                            <option value="LX4">ADP-LX4</option>
+                            <option value="SA1">AQL-GV-SA1</option>
+                            <option value="DIM8">ADP-DIM8</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome do Módulo</label>
+                        <input type="text" class="form-control" id="nome" required>
+                        <div class="invalid-feedback" id="modulo-feedback"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus-circle me-2"></i>Adicionar Módulo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+	<div class="col-md-6">
+		<div class="card">
+			<div class="card-header">
+				<h3>Módulos Cadastrados</h3>
+			</div>
+			<div class="card-body">
+				{% if modulos %}
+					<ul class="list-group" id="listaModulos">
+						{% for modulo in modulos %}
+							<li class="list-group-item d-flex justify-content-between align-items-center">
+								{{ modulo.nome }} ({{ modulo.tipo }}) - {{ modulo.quantidade_canais }} canais
+                                <button class="btn btn-sm btn-outline-danger" onclick="excluirModulo({{ modulo.id }})">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+							</li>
+						{% endfor %}
+					</ul>
+				{% else %}
+					<p class="text-muted">Nenhum módulo cadastrado.</p>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+function preencherNomeModulo() {
+    const tipo = document.getElementById('tipo').value;
+    const nomeInput = document.getElementById('nome');
+    
+    if (tipo) {
+        // Mapeia o tipo para o nome completo
+        const tipoParaNome = {
+            'RL12': 'ADP-RL12',
+            'RL4': 'AQL-GV-RL4',
+            'LX4': 'ADP-LX4',
+            'SA1': 'AQL-GV-SA1',
+            'DIM8': 'ADP-DIM8'
+        };
+        
+        nomeInput.value = tipoParaNome[tipo] || '';
+    } else {
+        nomeInput.value = '';
+    }
+}
+
+document.getElementById('formModulo').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('nome', document.getElementById('nome').value);
+    formData.append('tipo', document.getElementById('tipo').value);
+    
+    fetch('/modulos', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            document.getElementById('nome').classList.add('is-invalid');
+            document.getElementById('modulo-feedback').textContent = data.message;
+        }
+    });
+});
+
+function excluirModulo(id) {
+    if (confirm('Tem certeza que deseja excluir este módulo? Esta ação não pode ser desfeita.')) {
+        fetch(`/modulos/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if not session.projeto_atual_id %}
+<div class="alert alert-warning">
+    <p>Nenhum projeto selecionado. <a href="{{ url_for('index') }}">Voltar para a página inicial</a> para selecionar ou criar um projeto.</p>
+</div>
+{% else %}
+<h2>Vincular Circuitos a Módulos</h2>
+<p class="text-muted">Associe seus circuitos a módulos e canais disponíveis.</p>
+
+<div class="card border-0 rounded-4 shadow-sm mb-4">
+    <div class="card-header bg-white text-white border-0 rounded-top-4">
+        <h3 class="my-1">Vincular Circuito</h3>
+    </div>
+    <div class="card-body">
+        <form id="formVinculacao">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label for="circuito_id" class="form-label text-muted">Circuito</label>
+                    <select class="form-select" id="circuito_id" required>
+                        <option value="">Selecione um circuito</option>
+                        {% for circuito in circuitos %}
+                            <option value="{{ circuito.id }}">{{ circuito.identificador }} - {{ circuito.nome }} ({{ circuito.tipo }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label for="modulo_id" class="form-label text-muted">Módulo</label>
+                    <select class="form-select" id="modulo_id" required onchange="atualizarCanais()">
+                        <option value="">Selecione um módulo</option>
+                        {% for modulo in modulos %}
+                            <option value="{{ modulo.id }}" data-canais="{{ modulo.canais_disponiveis }}">{{ modulo.nome }} ({{ modulo.tipo }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="canal" class="form-label text-muted">Canal</label>
+                    <select class="form-select" id="canal" required>
+                        <option value="">Selecione</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4 text-center">
+                <button type="submit" class="btn btn-primary px-5 rounded-pill shadow-sm">
+                    <i class="fas fa-link me-2"></i>Vincular
+                </button>
+				
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 rounded-4 shadow-sm">
+    <div class="card-header bg-light border-0 rounded-top-4">
+        <h3 class="my-1">Vinculações Existentes</h3>
+    </div>
+    <div class="card-body">
+        {% if vinculacoes %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Circuito</th>
+                            <th>Módulo</th>
+                            <th>Canal</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vinculacao in vinculacoes %}
+                            <tr>
+                                <td><span class="fw-bold">{{ vinculacao.circuito.identificador }}</span> - {{ vinculacao.circuito.nome }}</td>
+                                <td>{{ vinculacao.modulo.nome }} ({{ vinculacao.modulo.tipo }})</td>
+                                <td>{{ vinculacao.canal }}</td>
+                                <td class="text-end">
+									<button class="btn btn-sm btn-outline-danger" onclick="excluirVinculacao({{ vinculacao.id }})">
+										<i class="fas fa-trash-alt"></i>
+									</button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted text-center py-4">Nenhuma vinculação cadastrada ainda.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+<script>
+// (Mantém o mesmo JavaScript original)
+const COMPATIBILIDADE = {
+    'luz': ['RL12', 'RL4', 'DIM8'],
+    'persiana': ['LX4'],
+    'hvac': ['SA1']
+};
+
+const circuitosInfo = {
+    {% for circuito in circuitos %}
+    {{ circuito.id }}: '{{ circuito.tipo }}',
+    {% endfor %}
+};
+
+const modulosInfo = {
+    {% for modulo in modulos %}
+    {{ modulo.id }}: '{{ modulo.tipo }}',
+    {% endfor %}
+};
+
+function excluirVinculacao(id) {
+    if (confirm('Tem certeza que deseja excluir esta vinculação? Esta ação não pode ser desfeita.')) {
+        fetch(`/vinculacao/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Erro ao excluir vinculação.');
+            }
+        })
+        .catch(err => {
+            console.error('Erro:', err);
+            alert('Erro na comunicação com o servidor.');
+        });
+    }
+}
+
+function atualizarCompatibilidade() {
+    const circuitoId = document.getElementById('circuito_id').value;
+    const moduloId = document.getElementById('modulo_id').value;
+    const circuitoSelect = document.getElementById('circuito_id');
+    const moduloSelect = document.getElementById('modulo_id');
+    
+    if (circuitoId) {
+        const circuitoTipo = circuitosInfo[circuitoId];
+        
+        for (let i = 0; i < moduloSelect.options.length; i++) {
+            const option = moduloSelect.options[i];
+            if (option.value) {
+                const moduloTipo = modulosInfo[option.value];
+                const isCompatible = COMPATIBILIDADE[circuitoTipo]?.includes(moduloTipo);
+                
+                option.disabled = !isCompatible;
+                if (option.selected && !isCompatible) {
+                    moduloSelect.value = '';
+                    document.getElementById('canal').innerHTML = '<option value="">Selecione</option>';
+                }
+            }
+        }
+    }
+}
+
+function atualizarCanais() {
+    const moduloSelect = document.getElementById('modulo_id');
+    const canalSelect = document.getElementById('canal');
+    const selectedOption = moduloSelect.options[moduloSelect.selectedIndex];
+    
+    canalSelect.innerHTML = '<option value="">Selecione</option>';
+    
+    if (selectedOption.value && !selectedOption.disabled) {
+        const canaisDisponiveis = JSON.parse(selectedOption.getAttribute('data-canais'));
+        
+        canaisDisponiveis.forEach(canal => {
+            const option = document.createElement('option');
+            option.value = canal;
+            option.textContent = `Canal ${canal}`;
+            canalSelect.appendChild(option);
+        });
+    }
+}
+
+document.getElementById('circuito_id').addEventListener('change', function() {
+    atualizarCompatibilidade();
+    atualizarCanais();
+});
+
+document.getElementById('modulo_id').addEventListener('change', function() {
+    atualizarCanais();
+});
+
+document.getElementById('formVinculacao').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const circuitoId = document.getElementById('circuito_id').value;
+    const moduloId = document.getElementById('modulo_id').value;
+    const canal = document.getElementById('canal').value;
+    
+    const circuitoTipo = circuitosInfo[circuitoId];
+    const moduloTipo = modulosInfo[moduloId];
+    
+    if (!COMPATIBILIDADE[circuitoTipo]?.includes(moduloTipo)) {
+        alert(`Circuitos do tipo ${circuitoTipo} não podem ser vinculados a módulos ${moduloTipo}`);
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('circuito_id', circuitoId);
+    formData.append('modulo_id', moduloId);
+    formData.append('canal', canal);
+    
+    fetch('/vinculacao', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message);
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarCompatibilidade();
+});
+</script>
+{% endblock %}

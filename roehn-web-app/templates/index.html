@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card border-0 rounded-4 shadow-lg">
+            <div class="card-header bg-white border-0 rounded-top-4">
+                <h2 class="my-1 fw-bold text-primary">Bem-vindo ao Gerenciador de Projetos Roehn</h2>
+            </div>
+            <div class="card-body p-4">
+                {% if projeto_atual_id %}
+                <div class="alert alert-info rounded-3 shadow-sm d-flex align-items-center mb-4">
+                    <i class="fas fa-project-diagram me-3 text-info fa-lg"></i>
+                    <div>
+                        Projeto atual: <strong class="text-dark">{{ projeto_atual_nome }}</strong>
+                    </div>
+                </div>
+                {% endif %}
+
+                <h4 class="fw-bold mb-3 text-secondary">Gerenciar Projetos</h4>
+                <div class="card border-0 rounded-4 shadow-sm mb-4">
+                    <div class="card-body bg-light">
+                        <form id="novoProjetoForm">
+                            <div class="input-group input-group-lg shadow-sm">
+                                <span class="input-group-text bg-white border-end-0"><i class="fas fa-folder-plus"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="nomeProjeto" placeholder="Nome do novo projeto" required>
+                                <button type="submit" class="btn btn-primary px-4">
+                                    <i class="fas fa-plus me-2"></i>Criar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h5 class="fw-bold mb-3 text-secondary">Projetos Existentes</h5>
+                    {% if projetos %}
+                    <ul class="list-group list-group-flush" id="listaProjetos">
+                        {% for projeto in projetos %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent py-3">
+                            <div class="flex-grow-1 d-flex align-items-center">
+                                <i class="fas fa-folder me-3 text-muted"></i>
+                                <span id="projeto-nome-{{ projeto.id }}" class="fw-medium">{{ projeto.nome }}</span>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-success" onclick="selecionarProjeto({{ projeto.id }})">
+                                    <i class="fas fa-check-circle me-1"></i> Selecionar
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" onclick="editarProjeto({{ projeto.id }}, '{{ projeto.nome }}')">
+                                    <i class="fas fa-edit me-1"></i> Editar
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="exportarProjeto({{ projeto.id }})">
+                                    <i class="fas fa-file-export me-1"></i> Exportar
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="excluirProjeto({{ projeto.id }})">
+                                    <i class="fas fa-trash-alt me-1"></i> Excluir
+                                </button>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted text-center py-4">Nenhum projeto cadastrado ainda.</p>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <h5 class="fw-bold mb-3 text-secondary">Importar Projeto</h5>
+                    <div class="alert alert-info rounded-3 shadow-sm">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Informação:</strong> Para importar um projeto, use um arquivo JSON exportado anteriormente através do botão "Exportar" na lista de projetos. O arquivo CSV é apenas para documentação e não pode ser usado para importação.
+                        </small>
+                    </div>
+                    <div class="input-group">
+                        <input type="file" id="importFile" accept=".json" class="form-control me-2">
+                        <button class="btn btn-warning" onclick="importarProjeto()">
+                            <i class="fas fa-file-import me-2"></i>Importar Projeto (JSON)
+                        </button>
+                    </div>
+                </div>
+
+                {% if projeto_atual_id %}
+                <div>
+                    <h5 class="fw-bold mb-3 text-secondary">Navegação</h5>
+                    <p class="text-muted">Use o menu acima para navegar pelas diferentes seções do sistema:</p>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-map-marked-alt me-2 text-info"></i><strong>Áreas</strong>: Cadastre as áreas do projeto</li>
+                        <li class="mb-2"><i class="fas fa-door-open me-2 text-warning"></i><strong>Ambientes</strong>: Cadastre os ambientes dentro de cada área</li>
+                        <li class="mb-2"><i class="fas fa-plug me-2 text-danger"></i><strong>Circuitos</strong>: Cadastre os circuitos com seus identificadores e tipos</li>
+                        <li class="mb-2"><i class="fas fa-hdd me-2 text-success"></i><strong>Módulos</strong>: Cadastre os módulos disponíveis</li>
+                        <li class="mb-2"><i class="fas fa-link me-2 text-primary"></i><strong>Vinculação</strong>: Associe os circuitos aos módulos e canais</li>
+                        <li class="mb-2"><i class="fas fa-file-export me-2 text-secondary"></i><strong>Visualizar Projeto</strong>: Veja o projeto completo e exporte para CSV</li>
+                    </ul>
+                </div>
+                {% else %}
+                <div class="alert alert-warning rounded-3 shadow-sm text-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Selecione ou crie um projeto para começar.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="editarProjetoModal" tabindex="-1" aria-labelledby="editarProjetoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow-lg">
+                <div class="modal-header bg-light border-0">
+                    <h5 class="modal-title fw-bold" id="editarProjetoModalLabel">Editar Nome do Projeto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formEditarProjeto">
+                        <input type="hidden" id="editarProjetoId">
+                        <div class="mb-3">
+                            <label for="editarProjetoNome" class="form-label text-muted">Novo Nome do Projeto</label>
+                            <input type="text" class="form-control" id="editarProjetoNome" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="salvarEdicaoProjeto()">Salvar Alterações</button>
+                </div>
+            </div>
+        </div>
+    </div>    
+</div>
+
+<script>
+document.getElementById('novoProjetoForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const nome = document.getElementById('nomeProjeto').value.trim();
+    
+    if (nome) {
+        const formData = new FormData();
+        formData.append('nome', nome);
+        
+        fetch('/projeto/novo', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+});
+
+function selecionarProjeto(id) {
+    window.location.href = `/projeto/${id}`;
+}
+
+function exportarProjeto(id) {
+    window.location.href = `/exportar-projeto/${id}`;
+}
+
+function excluirProjeto(id) {
+    if (confirm('Tem certeza que deseja excluir este projeto? Todos os dados serão perdidos.')) {
+        fetch(`/projeto/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao excluir projeto');
+            }
+        });
+    }
+}
+
+function importarProjeto() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Selecione um arquivo para importar');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    fetch('/importar-projeto', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Projeto importado com sucesso!');
+            window.location.href = `/projeto/${data.projeto_id}`;
+        } else {
+            alert('Erro na importação: ' + data.message);
+        }
+    });
+}
+// Função para abrir o modal de edição
+function editarProjeto(id, nome) {
+    document.getElementById('editarProjetoId').value = id;
+    document.getElementById('editarProjetoNome').value = nome;
+    var myModal = new bootstrap.Modal(document.getElementById('editarProjetoModal'));
+    myModal.show();
+}
+
+// Função para salvar a edição do projeto
+function salvarEdicaoProjeto() {
+    const id = document.getElementById('editarProjetoId').value;
+    const nome = document.getElementById('editarProjetoNome').value.trim();
+    
+    if (!nome) {
+        alert('Nome do projeto é obrigatório');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('nome', nome);
+    
+    fetch(`/projeto/${id}`, {
+        method: 'PUT',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Atualizar o nome na lista
+            document.getElementById(`projeto-nome-${id}`).textContent = nome;
+            
+            // Se for o projeto atual, atualizar também na sessão
+            if ({{ session.projeto_atual_id | default(0) }} == id) {
+                document.querySelector('.alert-info strong').textContent = nome;
+            }
+            
+            // Fechar o modal
+            var myModal = bootstrap.Modal.getInstance(document.getElementById('editarProjetoModal'));
+            myModal.hide();
+        } else {
+            alert(data.message);
+        }
+    });
+}
+</script>
+{% endblock %}

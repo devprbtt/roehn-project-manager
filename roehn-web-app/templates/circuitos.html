@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if not session.projeto_atual_id %}
+<div class="alert alert-warning">
+    <p>Nenhum projeto selecionado. <a href="{{ url_for('index') }}">Voltar para a página inicial</a> para selecionar ou criar um projeto.</p>
+</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Gerenciar Circuitos</h2>
+    <p class="lead text-muted my-0">Cadastre os circuitos com seus identificadores e tipos.</p>
+</div>
+
+<div class="row gx-4">
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 rounded-4 shadow-sm">
+            <div class="card-header bg-white border-0 rounded-top-4">
+                <h3 class="my-1">Adicionar Novo Circuito</h3>
+            </div>
+            <div class="card-body">
+                <form id="formCircuito">
+                    <div class="mb-3">
+                        <label for="identificador" class="form-label text-muted">Identificador</label>
+                        <input type="text" class="form-control" id="identificador" required>
+                        <div class="invalid-feedback" id="identificador-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nome" class="form-label text-muted">Nome do Circuito</label>
+                        <input type="text" class="form-control" id="nome" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label text-muted">Tipo</label>
+                        <select class="form-select" id="tipo" required>
+                            <option value="">Selecione o tipo</option>
+                            <option value="luz">Luz</option>
+                            <option value="persiana">Persiana</option>
+                            <option value="hvac">HVAC</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ambiente_id" class="form-label text-muted">Ambiente</label>
+                        <select class="form-select" id="ambiente_id" required>
+                            <option value="">Selecione um ambiente</option>
+                            {% for ambiente in ambientes %}
+                                <option value="{{ ambiente.id }}">{{ ambiente.nome }} ({{ ambiente.area.nome }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus-circle me-2"></i>Adicionar Circuito
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 rounded-4 shadow-sm">
+            <div class="card-header bg-white border-0 rounded-top-4">
+                <h3 class="my-1">Circuitos Cadastrados</h3>
+            </div>
+            <div class="card-body">
+                {% if circuitos %}
+                    <ul class="list-group list-group-flush" id="listaCircuitos">
+						<!-- Na lista de circuitos cadastrados, modifique a exibição do SAK -->
+						{% for circuito in circuitos %}
+							<li class="list-group-item">
+								<strong>{{ circuito.identificador }}</strong> - {{ circuito.nome }} ({{ circuito.tipo }})<br>
+								Ambiente: {{ circuito.ambiente.nome }} (Área: {{ circuito.ambiente.area.nome }})<br>
+								{% if circuito.tipo != 'hvac' %}
+									SAK: {{ circuito.sak }}
+								{% else %}
+									SAK: <span class="text-muted">Não aplicável</span>
+								{% endif %}
+                                <button class="btn btn-sm btn-outline-danger" onclick="excluirCircuito({{ circuito.id }})">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+							</li>
+						{% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted text-center py-4">Nenhum circuito cadastrado ainda.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+<script>
+document.getElementById('formCircuito').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('identificador', document.getElementById('identificador').value);
+    formData.append('nome', document.getElementById('nome').value);
+    formData.append('tipo', document.getElementById('tipo').value);
+    formData.append('ambiente_id', document.getElementById('ambiente_id').value);
+    
+    fetch('/circuitos', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            document.getElementById('identificador').classList.add('is-invalid');
+            document.getElementById('identificador-feedback').textContent = data.message;
+        }
+    });
+});
+
+function excluirCircuito(id) {
+    if (confirm('Tem certeza que deseja excluir este circuito? Esta ação não pode ser desfeita.')) {
+        fetch(`/circuitos/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

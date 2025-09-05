@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if not session.projeto_atual_id %}
+<div class="alert alert-warning">
+    <p>Nenhum projeto selecionado. <a href="{{ url_for('index') }}">Voltar para a página inicial</a> para selecionar ou criar um projeto.</p>
+</div>
+{% else %}
+<div class="projeto-content">
+    <h2>Visualizar Projeto Completo: {{ session.projeto_atual_nome }}</h2>
+
+    <div class="mb-3 no-print">
+        <!--<a href="{{ url_for('exportar_csv') }}" class="btn btn-success me-2">
+            <i class="fas fa-file-csv me-1"></i>Exportar CSV
+        </a>-->
+        <a href="{{ url_for('exportar_pdf', projeto_id=session.projeto_atual_id) }}" class="btn btn-danger me-2">
+            <i class="fas fa-file-pdf me-1"></i>Gerar AS BUILT
+        </a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roehnModal">
+            <i class="fas fa-file-export me-1"></i>Gerar Arquivo .rwp
+        </button>
+        <button class="btn btn-info me-2" onclick="window.print()">
+            <i class="fas fa-print me-1"></i>Imprimir Resumo
+        </button>
+    </div>
+    
+    {% for area in areas %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Área: {{ area.nome }}</h3>
+            </div>
+            <div class="card-body">
+                {% for ambiente in area.ambientes %}
+                    <h4>Ambiente: {{ ambiente.nome }}</h4>
+                    <table class="table table-striped table-sm">
+                        <thead class="bg-dark text-white">
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Identificador</th>
+                                <th>Nome do Circuito</th>
+                                <th>Módulo</th>
+                                <th>Canal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for circuito in ambiente.circuitos %}
+                                <tr>
+                                    <td>
+                                        {% if circuito.tipo == 'luz' %}
+                                            <i class="mdi mdi-lightbulb" style="color: orange"></i> Luz
+                                        {% elif circuito.tipo == 'persiana' %}
+                                            <i class="mdi mdi-blinds" style="color: black"></i> Persiana
+                                        {% elif circuito.tipo == 'hvac' %}
+                                            <i class="mdi mdi-air-conditioner" style="color: blue"></i> HVAC
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ circuito.identificador }}</td>
+                                    <td>{{ circuito.nome }}</td>
+                                    <td>
+                                        {% if circuito.vinculacao %}
+                                            {{ circuito.vinculacao.modulo.nome }}
+                                        {% else %}
+                                            <span class="text-danger">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if circuito.vinculacao %}
+                                            {{ circuito.vinculacao.canal }}
+                                        {% else %}
+                                            <span class="text-danger">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="print-footer" style="display: none;"></div>
+</div>
+{% endif %}
+<div class="modal fade" id="roehnModal" tabindex="-1" aria-labelledby="roehnModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title" id="roehnModalLabel">
+                    <i class="fas fa-file-export me-2"></i>Gerar Projeto Roehn
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form method="POST" action="{{ url_for('roehn_import') }}" enctype="multipart/form-data" id="roehnForm">
+                    <p class="mb-3">Gere um projeto Roehn Wizard diretamente do projeto atual: <strong>{{ session.projeto_atual_nome }}</strong></p>
+                    
+                    <input type="hidden" id="m4_hsnet" name="m4_hsnet" value="245">
+                    <input type="hidden" id="m4_devid" name="m4_devid" value="1">
+                    <input type="hidden" id="software_version" name="software_version" value="1.0.8.67">
+                    
+                    <h4 class="border-bottom pb-2 text-primary">Informações do Projeto</h4>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="project_name" class="form-label">Nome do Projeto</label>
+                            <input type="text" class="form-control rounded-3" id="project_name" name="project_name" value="{{ session.projeto_atual_nome }}" required>
+                            <div class="form-text">O nome do projeto Roehn será baseado no projeto atual</div>
+                        </div>
+                    </div>
+
+                    <h4 class="border-bottom pb-2 mt-4 text-primary">Informações do Cliente</h4>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="client_name" class="form-label">Nome do Cliente</label>
+                            <input type="text" class="form-control rounded-3" id="client_name" name="client_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="client_email" class="form-label">Email do Cliente</label>
+                            <input type="email" class="form-control rounded-3" id="client_email" name="client_email">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="client_phone" class="form-label">Telefone do Cliente</label>
+                            <input type="tel" class="form-control rounded-3" id="client_phone" name="client_phone" placeholder="(00) 00000-0000" oninput="formatPhoneNumber(this)">
+                            <div class="form-text">Digite apenas números (DDD + número)</div>
+                        </div>
+                    </div>
+
+                    <h4 class="border-bottom pb-2 mt-4 text-primary">Configurações Técnicas</h4>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="timezone_id" class="form-label">Timezone</label>
+                            <input type="text" class="form-control rounded-3" id="timezone_id" name="timezone_id" value="America/Bahia" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="lat" class="form-label">Latitude</label>
+                            <input type="text" class="form-control rounded-3" id="lat" name="lat" value="0.0">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="lon" class="form-label">Longitude</label>
+                            <input type="text" class="form-control rounded-3" id="lon" name="lon" value="0.0">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="tech_area" class="form-label">Área Técnica</label>
+                            <input type="text" class="form-control rounded-3" id="tech_area" name="tech_area" value="Área Técnica" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tech_room" class="form-label">Sala Técnica</label>
+                            <input type="text" class="form-control rounded-3" id="tech_room" name="tech_room" value="Sala Técnica" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="board_name" class="form-label">Nome do Quadro</label>
+                            <input type="text" class="form-control rounded-3" id="board_name" name="board_name" value="Quadro Elétrico" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="m4_ip" class="form-label">IP do Módulo M4</label>
+                            <input type="text" class="form-control rounded-3" id="m4_ip" name="m4_ip" value="192.168.5.30" required oninput="formatIPAddress(this)">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="submit" class="btn btn-primary" form="roehnForm">
+                    <i class="fas fa-file-download me-1"></i>Gerar e Baixar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('btnExportar').addEventListener('click', function() {
+    const nomeCliente = localStorage.getItem('nomeCliente') || 'projeto';
+    window.location.href = `/exportar-csv?cliente=${encodeURIComponent(nomeCliente)}`;
+});
+
+// Adicionar data/hora atual ao rodapé de impressão
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR');
+    const projectName = "{{ session.projeto_atual_nome }}";
+    
+    document.querySelector('.print-footer').textContent = 
+        `Relatório gerado em ${formattedDate} | Projeto: ${projectName} | Roehn Automação Residencial`;
+});
+
+// Funções de formatação e validação movidas para o script aqui
+function formatPhoneNumber(input) {
+    let value = input.value.replace(/\D/g, ''); // Remove todos os caracteres não numéricos
+    if (value.length > 0) {
+        value = '(' + value.substring(0, 2) + ') ' + value.substring(2, 7) + '-' + value.substring(7, 11);
+    }
+    input.value = value.trim();
+}
+
+function formatIPAddress(input) {
+    let value = input.value.replace(/[^0-9.]/g, '');
+    if (value.length > 15) {
+        value = value.substring(0, 15);
+    }
+    input.value = value;
+}
+
+// Validação do formulário
+document.getElementById('roehnForm').addEventListener('submit', function(e) {
+    const phoneInput = document.getElementById('client_phone');
+    const ipInput = document.getElementById('m4_ip');
+    
+    // Validação do telefone
+    const phoneNumbers = phoneInput.value.replace(/\D/g, '');
+    if (phoneNumbers.length < 10) {
+        e.preventDefault();
+        alert('Por favor, insira um número de telefone válido com DDD + número (mínimo 10 dígitos).');
+        phoneInput.focus();
+        return false;
+    }
+    
+    // Cria um campo oculto com o telefone apenas números para envio
+    const hiddenPhoneInput = document.createElement('input');
+    hiddenPhoneInput.type = 'hidden';
+    hiddenPhoneInput.name = 'client_phone_clean';
+    hiddenPhoneInput.value = phoneNumbers;
+    this.appendChild(hiddenPhoneInput);
+    
+    // Validação do IP usando a expressão regular
+    const ipPattern = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (!ipPattern.test(ipInput.value)) {
+        e.preventDefault();
+        alert('Por favor, insira um endereço de IP válido.');
+        ipInput.focus();
+        return false;
+    }
+});
+</script>
+{% endblock %}
