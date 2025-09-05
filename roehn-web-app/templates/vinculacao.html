@@ -17,26 +17,31 @@
         <form id="formVinculacao">
             <div class="row g-3">
                 <div class="col-md-5">
-                    <label for="circuito_id" class="form-label text-muted">Circuito</label>
-                    <select class="form-select" id="circuito_id" required>
+                    <label for="circuito_id" class="form-label">Circuito</label>
+                    <select class="form-select" id="circuito_id" name="circuito_id" required onchange="atualizarCompatibilidade()">
                         <option value="">Selecione um circuito</option>
                         {% for circuito in circuitos %}
-                            <option value="{{ circuito.id }}">{{ circuito.identificador }} - {{ circuito.nome }} ({{ circuito.tipo }})</option>
+                        <option value="{{ circuito.id }}" data-tipo="{{ circuito.tipo }}">
+                            {{ circuito.identificador }} - {{ circuito.nome }} 
+                            (Área: {{ circuito.area_nome }}, Ambiente: {{ circuito.ambiente_nome }})
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-5">
-                    <label for="modulo_id" class="form-label text-muted">Módulo</label>
-                    <select class="form-select" id="modulo_id" required onchange="atualizarCanais()">
+                    <label for="modulo_id" class="form-label">Módulo</label>
+                    <select class="form-select" id="modulo_id" name="modulo_id" required onchange="atualizarCanais()">
                         <option value="">Selecione um módulo</option>
                         {% for modulo in modulos %}
-                            <option value="{{ modulo.id }}" data-canais="{{ modulo.canais_disponiveis }}">{{ modulo.nome }} ({{ modulo.tipo }})</option>
+                            <option value="{{ modulo.id }}" data-tipo="{{ modulo.tipo }}" data-canais="{{ modulo.canais_disponiveis|tojson|forceescape }}">
+                                {{ modulo.nome }} ({{ modulo.tipo }})
+                            </option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label for="canal" class="form-label text-muted">Canal</label>
-                    <select class="form-select" id="canal" required>
+                    <label for="canal" class="form-label">Canal</label>
+                    <select class="form-select" id="canal" name="canal" required>
                         <option value="">Selecione</option>
                     </select>
                 </div>
@@ -45,7 +50,6 @@
                 <button type="submit" class="btn btn-primary px-5 rounded-pill shadow-sm">
                     <i class="fas fa-link me-2"></i>Vincular
                 </button>
-				
             </div>
         </form>
     </div>
@@ -62,6 +66,8 @@
                     <thead>
                         <tr>
                             <th>Circuito</th>
+                            <th>Área</th>
+                            <th>Ambiente</th>
                             <th>Módulo</th>
                             <th>Canal</th>
                             <th class="text-end">Ações</th>
@@ -70,13 +76,15 @@
                     <tbody>
                         {% for vinculacao in vinculacoes %}
                             <tr>
-                                <td><span class="fw-bold">{{ vinculacao.circuito.identificador }}</span> - {{ vinculacao.circuito.nome }}</td>
-                                <td>{{ vinculacao.modulo.nome }} ({{ vinculacao.modulo.tipo }})</td>
+                                <td><span class="fw-bold">{{ vinculacao.identificador }}</span> - {{ vinculacao.circuito_nome }}</td>
+                                <td>{{ vinculacao.area_nome }}</td>
+                                <td>{{ vinculacao.ambiente_nome }}</td>
+                                <td>{{ vinculacao.modulo_nome }} ({{ vinculacao.modulo_tipo }})</td>
                                 <td>{{ vinculacao.canal }}</td>
                                 <td class="text-end">
-									<button class="btn btn-sm btn-outline-danger" onclick="excluirVinculacao({{ vinculacao.id }})">
-										<i class="fas fa-trash-alt"></i>
-									</button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="excluirVinculacao({{ vinculacao.id }})">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -89,26 +97,66 @@
     </div>
 </div>
 {% endif %}
+
 <script>
-// (Mantém o mesmo JavaScript original)
+// Dados de compatibilidade
 const COMPATIBILIDADE = {
     'luz': ['RL12', 'RL4', 'DIM8'],
     'persiana': ['LX4'],
     'hvac': ['SA1']
 };
 
-const circuitosInfo = {
-    {% for circuito in circuitos %}
-    {{ circuito.id }}: '{{ circuito.tipo }}',
-    {% endfor %}
-};
+// Função para atualizar a compatibilidade
+function atualizarCompatibilidade() {
+    const circuitoSelect = document.getElementById('circuito_id');
+    const moduloSelect = document.getElementById('modulo_id');
+    const selectedCircuito = circuitoSelect.options[circuitoSelect.selectedIndex];
+    
+    if (selectedCircuito.value) {
+        const circuitoTipo = selectedCircuito.getAttribute('data-tipo');
+        
+        // Habilitar/desabilitar módulos com base na compatibilidade
+        for (let i = 0; i < moduloSelect.options.length; i++) {
+            const moduloOption = moduloSelect.options[i];
+            if (moduloOption.value) {
+                const moduloTipo = moduloOption.getAttribute('data-tipo');
+                const isCompatible = COMPATIBILIDADE[circuitoTipo]?.includes(moduloTipo);
+                
+                moduloOption.disabled = !isCompatible;
+                if (moduloOption.selected && !isCompatible) {
+                    moduloSelect.value = '';
+                    document.getElementById('canal').innerHTML = '<option value="">Selecione</option>';
+                }
+            }
+        }
+    }
+}
 
-const modulosInfo = {
-    {% for modulo in modulos %}
-    {{ modulo.id }}: '{{ modulo.tipo }}',
-    {% endfor %}
-};
+// Função para atualizar os canais disponíveis
+function atualizarCanais() {
+    const moduloSelect = document.getElementById('modulo_id');
+    const canalSelect = document.getElementById('canal');
+    const selectedModulo = moduloSelect.options[moduloSelect.selectedIndex];
+    
+    canalSelect.innerHTML = '<option value="">Selecione</option>';
+    
+    if (selectedModulo.value && !selectedModulo.disabled) {
+        try {
+            const canaisDisponiveis = JSON.parse(selectedModulo.getAttribute('data-canais'));
+            
+            canaisDisponiveis.forEach(canal => {
+                const option = document.createElement('option');
+                option.value = canal;
+                option.textContent = `Canal ${canal}`;
+                canalSelect.appendChild(option);
+            });
+        } catch (e) {
+            console.error('Erro ao analisar canais disponíveis:', e);
+        }
+    }
+}
 
+// Função para excluir vinculação
 function excluirVinculacao(id) {
     if (confirm('Tem certeza que deseja excluir esta vinculação? Esta ação não pode ser desfeita.')) {
         fetch(`/vinculacao/${id}`, {
@@ -129,59 +177,7 @@ function excluirVinculacao(id) {
     }
 }
 
-function atualizarCompatibilidade() {
-    const circuitoId = document.getElementById('circuito_id').value;
-    const moduloId = document.getElementById('modulo_id').value;
-    const circuitoSelect = document.getElementById('circuito_id');
-    const moduloSelect = document.getElementById('modulo_id');
-    
-    if (circuitoId) {
-        const circuitoTipo = circuitosInfo[circuitoId];
-        
-        for (let i = 0; i < moduloSelect.options.length; i++) {
-            const option = moduloSelect.options[i];
-            if (option.value) {
-                const moduloTipo = modulosInfo[option.value];
-                const isCompatible = COMPATIBILIDADE[circuitoTipo]?.includes(moduloTipo);
-                
-                option.disabled = !isCompatible;
-                if (option.selected && !isCompatible) {
-                    moduloSelect.value = '';
-                    document.getElementById('canal').innerHTML = '<option value="">Selecione</option>';
-                }
-            }
-        }
-    }
-}
-
-function atualizarCanais() {
-    const moduloSelect = document.getElementById('modulo_id');
-    const canalSelect = document.getElementById('canal');
-    const selectedOption = moduloSelect.options[moduloSelect.selectedIndex];
-    
-    canalSelect.innerHTML = '<option value="">Selecione</option>';
-    
-    if (selectedOption.value && !selectedOption.disabled) {
-        const canaisDisponiveis = JSON.parse(selectedOption.getAttribute('data-canais'));
-        
-        canaisDisponiveis.forEach(canal => {
-            const option = document.createElement('option');
-            option.value = canal;
-            option.textContent = `Canal ${canal}`;
-            canalSelect.appendChild(option);
-        });
-    }
-}
-
-document.getElementById('circuito_id').addEventListener('change', function() {
-    atualizarCompatibilidade();
-    atualizarCanais();
-});
-
-document.getElementById('modulo_id').addEventListener('change', function() {
-    atualizarCanais();
-});
-
+// Event listener para o formulário
 document.getElementById('formVinculacao').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -189,8 +185,18 @@ document.getElementById('formVinculacao').addEventListener('submit', function(e)
     const moduloId = document.getElementById('modulo_id').value;
     const canal = document.getElementById('canal').value;
     
-    const circuitoTipo = circuitosInfo[circuitoId];
-    const moduloTipo = modulosInfo[moduloId];
+    if (!circuitoId || !moduloId || !canal) {
+        alert('Por favor, preencha todos os campos.');
+        return;
+    }
+    
+    const circuitoSelect = document.getElementById('circuito_id');
+    const moduloSelect = document.getElementById('modulo_id');
+    const selectedCircuito = circuitoSelect.options[circuitoSelect.selectedIndex];
+    const selectedModulo = moduloSelect.options[moduloSelect.selectedIndex];
+    
+    const circuitoTipo = selectedCircuito.getAttribute('data-tipo');
+    const moduloTipo = selectedModulo.getAttribute('data-tipo');
     
     if (!COMPATIBILIDADE[circuitoTipo]?.includes(moduloTipo)) {
         alert(`Circuitos do tipo ${circuitoTipo} não podem ser vinculados a módulos ${moduloTipo}`);
@@ -211,13 +217,24 @@ document.getElementById('formVinculacao').addEventListener('submit', function(e)
         if (data.success) {
             location.reload();
         } else {
-            alert(data.message);
+            alert(data.message || 'Erro ao criar vinculação.');
         }
+    })
+    .catch(err => {
+        console.error('Erro:', err);
+        alert('Erro na comunicação com o servidor.');
     });
 });
 
+// Inicializar ao carregar a página
 document.addEventListener('DOMContentLoaded', function() {
+    // Adicionar event listeners
+    document.getElementById('circuito_id').addEventListener('change', atualizarCompatibilidade);
+    document.getElementById('modulo_id').addEventListener('change', atualizarCanais);
+    
+    // Inicializar estados
     atualizarCompatibilidade();
+    atualizarCanais();
 });
 </script>
 {% endblock %}
