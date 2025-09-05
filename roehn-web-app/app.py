@@ -571,17 +571,49 @@ def vinculacao():
         db.session.commit()
         return jsonify({'success': True})
     
-    # Buscar apenas circuitos não vinculados do projeto atual
-    circuitos_nao_vinculados = Circuito.query.join(Ambiente).join(Area).filter(
-        Area.projeto_id == projeto_atual_id,
-        Circuito.vinculacao == None
-    ).all()
+    # Buscar apenas circuitos não vinculados do projeto atual com informações de área e ambiente
+    circuitos_nao_vinculados = (
+        db.session.query(
+            Circuito.id,
+            Circuito.identificador,
+            Circuito.nome,
+            Circuito.tipo,  # <- necessário para o data-tipo do HTML
+            Ambiente.nome.label('ambiente_nome'),
+            Area.nome.label('area_nome'),
+        )
+        .select_from(Circuito)
+        .join(Ambiente, Circuito.ambiente_id == Ambiente.id)
+        .join(Area, Ambiente.area_id == Area.id)
+        .filter(Area.projeto_id == projeto_atual_id)
+        .filter(~Circuito.vinculacao.has())  # evita JOIN extra e ambiguidade
+        .order_by(Area.nome, Ambiente.nome, Circuito.identificador)
+        .all()
+    )
+    
+    # Buscar vinculações com informações completas
+    vinculacoes = (
+        db.session.query(
+            Vinculacao.id,
+            Vinculacao.canal,
+            Circuito.identificador,
+            Circuito.nome.label('circuito_nome'),
+            Ambiente.nome.label('ambiente_nome'),
+            Area.nome.label('area_nome'),
+            Modulo.nome.label('modulo_nome'),
+            Modulo.tipo.label('modulo_tipo'),  # <- o template usa isso
+        )
+        .select_from(Vinculacao)
+        .join(Circuito, Vinculacao.circuito_id == Circuito.id)
+        .join(Ambiente, Circuito.ambiente_id == Ambiente.id)
+        .join(Area, Ambiente.area_id == Area.id)
+        .join(Modulo, Vinculacao.modulo_id == Modulo.id)
+        .filter(Area.projeto_id == projeto_atual_id)
+        .order_by(Area.nome, Ambiente.nome, Circuito.identificador, Modulo.nome, Vinculacao.canal)
+        .all()
+    )
     
     # Buscar apenas módulos do projeto atual
     modulos = Modulo.query.filter_by(projeto_id=projeto_atual_id).all()
-    vinculacoes = Vinculacao.query.join(Circuito).join(Ambiente).join(Area).filter(
-        Area.projeto_id == projeto_atual_id
-    ).all()
     
     # Preparar informações sobre canais disponíveis por módulo
     modulos_info = []
